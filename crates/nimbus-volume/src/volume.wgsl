@@ -53,20 +53,22 @@ fn light_transmittance(
     if (light_direction.y <= 0.001) {
         return 1.0;
     }
-    let light_distance = min((top - position.y) / light_direction.y, 1200.0);
+    let light_distance = min((top - position.y) / light_direction.y, 8000.0);
     let light_steps = select(2u, 4u, clouds.light_steps >= 4u);
+    let segment_length = light_distance / f32(light_steps);
     var optical_depth = 0.0;
+    let four_step_fractions = array<f32, 4>(0.05, 0.15, 0.35, 0.70);
     for (var index = 0u; index < 4u; index++) {
         if (index >= light_steps) {
             break;
         }
-        var fraction = select(0.22, 0.72, index == 1u);
+        var fraction = select(0.20, 0.65, index == 1u);
         if (light_steps == 4u) {
-            let four_step_fractions = array<f32, 4>(0.10, 0.30, 0.55, 0.85);
             fraction = four_step_fractions[index];
         }
         let sample_position = position + light_direction * light_distance * fraction;
-        optical_depth += density_at(sample_position, bottom, top) * light_distance / f32(light_steps);
+        optical_depth += density_at(sample_position, bottom, top, segment_length)
+            * segment_length;
     }
     return exp(-optical_depth * EXTINCTION * 1.1);
 }
@@ -141,10 +143,10 @@ fn fs_main(in: FullscreenVertexOutput) -> VolumeOutput {
     if (hit.y <= 0.0) {
         return VolumeOutput(vec4<f32>(0.0), vec2<f32>(0.0));
     }
-    let vertical_samples = max(f32(clouds.view_steps) * 0.5, 12.0);
+    let step_count = clamp(clouds.view_steps, 24u, 64u);
     let slab_thickness = max(top - bottom, 1.0);
-    let fine_step = clamp(slab_thickness / vertical_samples, 40.0, 100.0);
-    var distance = hit.x + fine_step * hash_jitter(in.uv * depth_size);
+    let step_length = hit.y / f32(step_count);
+    var distance = hit.x + step_length * hash_jitter(in.uv * depth_size);
     let far = hit.x + hit.y;
     var transmittance = 1.0;
     var radiance = vec3<f32>(0.0);
@@ -159,14 +161,13 @@ fn fs_main(in: FullscreenVertexOutput) -> VolumeOutput {
     );
     var dense_sample_index = 0u;
     for (var iteration = 0u; iteration < 64u; iteration++) {
-        if (distance >= far || transmittance <= 0.01) {
+        if (iteration >= step_count || distance >= far || transmittance <= 0.01) {
             break;
         }
         let position = clouds.camera_pos + direction * distance;
-        let density = density_at(position, bottom, top);
-        let step_length = fine_step;
+        let density = density_at(position, bottom, top, step_length);
         if (density > 0.001) {
-            if ((dense_sample_index & 3u) == 0u) {
+            if ((dense_sample_index & 1u) == 0u) {
                 for (var light_index = 0u; light_index < clouds.directional_light_count; light_index++) {
                     cached_light_visibility[light_index] = light_transmittance(
                         position,
@@ -212,6 +213,6 @@ fn fs_main(in: FullscreenVertexOutput) -> VolumeOutput {
         guide = vec2<f32>(mean_depth, sqrt(variance));
     }
     let current = vec4<f32>(radiance, alpha);
-    let resolved = resolve_history(current, guide, direction, fine_step, in.uv);
+    let resolved = resolve_history(current, guide, direction, step_length, in.uv);
     return VolumeOutput(resolved, guide);
 }

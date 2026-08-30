@@ -25,27 +25,24 @@ fn fs_main(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
     }
     let bottom = clouds.base_altitude;
     let top = bottom + max(clouds.thickness, 800.0);
-    let receiver = vec3<f32>((in.uv - 0.5) * SHADOW_WORLD_SIZE, 0.0);
-    let entry_distance = max((bottom - receiver.y) / light_direction.y, 0.0);
-    let origin = receiver + light_direction * entry_distance;
-    let path_length = min((top - bottom) / light_direction.y, 32000.0);
-    let vertical_samples = max(f32(clouds.view_steps) * 0.5, 12.0);
-    let fine_step = clamp((top - bottom) / vertical_samples, 40.0, 100.0);
+    let receiver_xz = (in.uv - vec2<f32>(0.5)) * SHADOW_WORLD_SIZE;
+    let receiver = vec3<f32>(receiver_xz.x, 0.0, receiver_xz.y);
+    let sample_count = clamp(clouds.view_steps / 2u, 16u, 32u);
+    let vertical_step = (top - bottom) / f32(sample_count);
+    let ray_step = vertical_step / light_direction.y;
     let pixel = vec2<u32>(in.position.xy);
     let jitter = f32(hash_u32(pixel.x ^ pixel.y * 0x9e3779b9u) & 0x00ffffffu)
         / 16777216.0;
-    var distance = fine_step * jitter;
-    var transmittance = 1.0;
-    for (var iteration = 0u; iteration < 64u; iteration++) {
-        if (distance >= path_length || transmittance <= 0.01) {
+    var optical_depth = 0.0;
+    for (var index = 0u; index < 32u; index++) {
+        if (index >= sample_count || optical_depth * EXTINCTION >= 4.6) {
             break;
         }
-        let position = origin + light_direction * distance;
-        let density = density_at(position, bottom, top);
-        if (density > 0.001) {
-            transmittance *= exp(-density * fine_step * EXTINCTION);
-        }
-        distance += fine_step;
+        let sample_y = bottom + (f32(index) + jitter) * vertical_step;
+        let distance = (sample_y - receiver.y) / light_direction.y;
+        let position = receiver + light_direction * distance;
+        optical_depth += density_at(position, bottom, top, ray_step) * ray_step;
     }
+    let transmittance = exp(-optical_depth * EXTINCTION);
     return vec4<f32>(transmittance, 0.0, 0.0, 1.0);
 }

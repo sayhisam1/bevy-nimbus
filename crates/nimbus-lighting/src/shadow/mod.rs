@@ -15,7 +15,7 @@ use bevy::{
 };
 use nimbus_volume::DENSITY_WGSL;
 
-const SHADOW_MAP_SIZE: u32 = 128;
+const SHADOW_MAP_SIZE: u32 = 256;
 const SHADOW_MARCH_WGSL: &str = include_str!("shadow.wgsl");
 const SHADOW_SHADER: &str = "nimbus_volume_shadow.wgsl";
 
@@ -91,8 +91,8 @@ fn blank_map_image() -> Image {
     image.texture_descriptor.usage =
         TextureUsages::RENDER_ATTACHMENT | TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST;
     image.sampler = ImageSampler::Descriptor(ImageSamplerDescriptor {
-        address_mode_u: ImageAddressMode::Repeat,
-        address_mode_v: ImageAddressMode::Repeat,
+        address_mode_u: ImageAddressMode::ClampToEdge,
+        address_mode_v: ImageAddressMode::ClampToEdge,
         mag_filter: ImageFilterMode::Linear,
         min_filter: ImageFilterMode::Linear,
         ..Default::default()
@@ -118,4 +118,27 @@ fn update_shadow_map(
         sources.next().is_none(),
         "Nimbus supports one NimbusCloudShadowSource"
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn shadow_map_is_high_resolution_and_does_not_repeat() {
+        let image = blank_map_image();
+        assert_eq!(image.texture_descriptor.size.width, 256);
+        assert_eq!(image.texture_descriptor.size.height, 256);
+        let ImageSampler::Descriptor(sampler) = image.sampler else {
+            panic!("shadow map must use an explicit sampler");
+        };
+        assert_eq!(sampler.address_mode_u, ImageAddressMode::ClampToEdge);
+        assert_eq!(sampler.address_mode_v, ImageAddressMode::ClampToEdge);
+    }
+
+    #[test]
+    fn shadow_uv_maps_to_world_xz_not_xy() {
+        assert!(SHADOW_MARCH_WGSL.contains("vec3<f32>(receiver_xz.x, 0.0, receiver_xz.y)",));
+        assert!(!SHADOW_MARCH_WGSL.contains("vec3<f32>((in.uv - 0.5) * SHADOW_WORLD_SIZE, 0.0)",));
+    }
 }

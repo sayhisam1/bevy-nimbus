@@ -14,3 +14,6 @@ All notable changes to this project are documented here. The format follows
 ### Changed
 
 - Organized Nimbus into five focused implementation crates behind the public facade.
+- Reworked cloud density, weather scales, height profiles, erosion, and ray traversal for coherent formations.
+- Increased the default sampling quality and gave every example a distinct visual scene.
+- Corrected world-space cloud-shadow projection, full-height marching, filtering, and stale-map clearing.
