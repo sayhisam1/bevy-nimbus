@@ -1,6 +1,6 @@
 //! User-facing cloud components and quality settings.
 
-use bevy::{prelude::*, render::extract_component::ExtractComponent};
+use bevy::{camera::Hdr, prelude::*, render::extract_component::ExtractComponent};
 
 /// Selects a canonical cloud-density and color profile.
 #[derive(Component, Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
@@ -74,7 +74,7 @@ pub struct NimbusCloudVolume;
 
 /// Connects a camera to its cloud-volume entity.
 #[derive(Component, ExtractComponent, Clone, Copy, Debug, PartialEq, Eq)]
-#[require(Camera3d)]
+#[require(Camera3d, Hdr, Msaa::Off)]
 pub struct NimbusCloudView {
     /// Entity carrying [`NimbusCloudVolume`] and [`CloudSettings`].
     #[entities]
@@ -134,5 +134,21 @@ impl Default for CloudSettings {
             density: 0.52,
             scale: 1.0,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::NimbusCloudView;
+    use bevy::{camera::Hdr, prelude::*, render::view::Msaa};
+
+    #[test]
+    fn cloud_view_requires_an_hdr_single_sample_camera() {
+        let mut world = World::new();
+        let volume = world.spawn_empty().id();
+        let view = world.spawn(NimbusCloudView::new(volume)).id();
+
+        assert!(world.entity(view).contains::<Hdr>());
+        assert_eq!(world.entity(view).get::<Msaa>(), Some(&Msaa::Off));
     }
 }

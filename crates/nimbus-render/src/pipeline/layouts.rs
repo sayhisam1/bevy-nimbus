@@ -18,7 +18,7 @@ pub(super) fn volume() -> BindGroupLayoutDescriptor {
                 uniform_buffer::<CloudsUniform>(true),
                 texture_3d(TextureSampleType::Float { filterable: true }),
                 texture_3d(TextureSampleType::Float { filterable: true }),
-                texture_2d(TextureSampleType::Float { filterable: false }),
+                texture_2d(TextureSampleType::Float { filterable: true }),
                 sampler(SamplerBindingType::Filtering),
                 texture_depth_2d(),
                 uniform_buffer::<NimbusMotionUniform>(false),
@@ -36,7 +36,7 @@ pub(super) fn composite() -> BindGroupLayoutDescriptor {
         &BindGroupLayoutEntries::sequential(
             ShaderStages::FRAGMENT,
             (
-                texture_2d(TextureSampleType::Float { filterable: false }),
+                texture_2d(TextureSampleType::Float { filterable: true }),
                 sampler(SamplerBindingType::Filtering),
                 texture_depth_2d(),
             ),

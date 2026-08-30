@@ -25,7 +25,7 @@ cloud lights, and world-space cloud shadows.
 ## Quick start
 
 ```rust,no_run
-use bevy::prelude::*;
+use bevy::{camera::Hdr, prelude::*};
 use bevy_nimbus::*;
 
 fn main() {
@@ -40,6 +40,8 @@ fn setup(mut commands: Commands) {
 
     commands.spawn((
         Camera3d::default(),
+        Hdr,
+        Msaa::Off,
         Transform::from_xyz(0.0, 120.0, -300.0)
             .looking_to(Vec3::new(0.12, 0.18, 1.0), Vec3::Y),
         NimbusCloudView::new(volume),
@@ -129,6 +131,7 @@ in its R channel over an 8192-unit square centered on the world origin.
 ## Runtime contracts
 
 - The embedded shape, detail, and weather textures are required. A load failure panics with the asset error.
+- `NimbusCloudView` requires an HDR, single-sample camera; it adds `Hdr` and `Msaa::Off` by default.
 - The cloud pass runs after the opaque main pass and before early post-processing.
 - External TAA is not required; Nimbus owns its reduced-resolution temporal history.
 - Invalid references and ambiguous view or shadow ownership panic with a clear error.

@@ -64,6 +64,7 @@ jobs:
           <html lang="en"><head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
+            <link rel="icon" href="data:,">
             <title>bevy-nimbus WebGPU examples</title>
             <style>
               :root { color-scheme: dark; font-family: system-ui, sans-serif; }
@@ -99,16 +100,12 @@ jobs:
               --out-name "$example" \
               "target/wasm32-unknown-unknown/release/examples/$example.wasm"
 
-            if [[ "$example" == cloud_shadows ]]; then
-              mkdir -p "public/$example/examples"
-              cp examples/shadow_ground.wgsl "public/$example/examples/"
-            fi
-
             cat > "public/$example/index.html" <<HTML
           <!doctype html>
           <html lang="en"><head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
+            <link rel="icon" href="data:,">
             <title>bevy-nimbus — $example</title>
             <style>
               html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #173e70; }

@@ -3,6 +3,7 @@
 mod common;
 
 use bevy::{
+    asset::embedded_asset,
     pbr::{ExtendedMaterial, MaterialExtension},
     prelude::*,
     render::render_resource::{AsBindGroup, ShaderType},
@@ -28,12 +29,13 @@ struct ShadowGroundParams {
 
 impl MaterialExtension for ShadowGround {
     fn fragment_shader() -> ShaderRef {
-        "examples/shadow_ground.wgsl".into()
+        "embedded://cloud_shadows/shadow_ground.wgsl".into()
     }
 }
 
 fn main() {
     let mut app = common::app("bevy-nimbus — cloud shadows");
+    embedded_asset!(app, "examples", "shadow_ground.wgsl");
     app.add_plugins(MaterialPlugin::<ShadowGroundMaterial>::default())
         .add_systems(PostStartup, setup)
         .run();
