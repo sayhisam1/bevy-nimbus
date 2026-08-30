@@ -86,6 +86,16 @@ fn attachment(view: &TextureView) -> RenderPassColorAttachment<'_> {
     }
 }
 
+fn clear_shadow_target(context: &mut RenderContext, view: &TextureView) {
+    let _pass = context
+        .command_encoder()
+        .begin_render_pass(&RenderPassDescriptor {
+            label: Some("clear_nimbus_volume_shadow"),
+            color_attachments: &[Some(attachment(view))],
+            ..default()
+        });
+}
+
 #[expect(
     clippy::needless_pass_by_value,
     clippy::too_many_arguments,
@@ -101,20 +111,26 @@ pub(super) fn render_shadow_coverage(
     gpu_images: Res<RenderAssets<GpuImage>>,
     mut context: RenderContext,
 ) {
-    let (Some(pipelines), Some(buffer), Some(map), Some(volume)) =
-        (pipelines, buffer, map, volume_handle)
-    else {
+    let (Some(pipelines), Some(map)) = (pipelines, map) else {
+        return;
+    };
+    let Some(target) = gpu_images.get(&map.texture) else {
         return;
     };
     if !map.enabled {
+        clear_shadow_target(&mut context, &target.texture_view);
         return;
     }
-    let (Some(target), Some(pipeline), Some(volume_images), Some(uniform_binding)) = (
-        gpu_images.get(&map.texture),
+    let (Some(buffer), Some(volume)) = (buffer, volume_handle) else {
+        clear_shadow_target(&mut context, &target.texture_view);
+        return;
+    };
+    let (Some(pipeline), Some(volume_images), Some(uniform_binding)) = (
         pipeline_cache.get_render_pipeline(pipelines.pipeline),
         gpu_nubis_textures(&volume, &gpu_images),
         buffer.0.binding(),
     ) else {
+        clear_shadow_target(&mut context, &target.texture_view);
         return;
     };
     let group = context.render_device().create_bind_group(

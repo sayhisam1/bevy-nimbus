@@ -67,7 +67,7 @@ impl Default for CloudsUniform {
             view_steps: 48,
             directional_lights,
             light_steps: 4,
-            resolution_divisor: 4,
+            resolution_divisor: 2,
         }
     }
 }

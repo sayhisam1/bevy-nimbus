@@ -41,42 +41,67 @@ fn remap_density(value: f32, coverage: f32) -> f32 {
     return saturate((value - (1.0 - coverage)) / max(coverage, 0.0001));
 }
 
-fn low_height_gradient(height: f32) -> f32 {
-    let base_rise = smoothstep(0.0, 0.2, height);
-    let top_taper = 1.0 - smoothstep(0.55, 1.0, height);
-    return base_rise * top_taper;
+const WEATHER_WORLD_SIZE: f32 = 60000.0;
+const SHAPE_WORLD_SIZE_XZ: f32 = 10000.0;
+const SHAPE_WORLD_SIZE_Y: f32 = 4000.0;
+const DETAIL_MULTIPLIER: f32 = 6.0;
+
+fn cloud_height_gradient(height: f32, cloud_type: f32) -> f32 {
+    let stratus = smoothstep(0.00, 0.08, height)
+        * (1.0 - smoothstep(0.22, 0.35, height));
+    let stratocumulus = smoothstep(0.00, 0.12, height)
+        * (1.0 - smoothstep(0.45, 0.70, height));
+    let cumulus = smoothstep(0.00, 0.10, height)
+        * (1.0 - smoothstep(0.78, 1.00, height));
+    let low_type = mix(stratus, stratocumulus, saturate(cloud_type * 2.0));
+    return mix(low_type, cumulus, saturate((cloud_type - 0.5) * 2.0));
 }
 
-fn density_at(position: vec3<f32>, bounds_min: f32, bounds_max: f32) -> f32 {
+fn density_at(
+    position: vec3<f32>,
+    bounds_min: f32,
+    bounds_max: f32,
+    sample_length: f32,
+) -> f32 {
     let height = saturate((position.y - bounds_min) / max(bounds_max - bounds_min, 1.0));
     let drift = clouds.movement * clouds.elapsed_seconds;
-    let weather_uv = (position.xz + drift) / 3000.0;
-    let weather = textureSampleLevel(weather_texture, noise_sampler, weather_uv, 0.0);
-    let support = smoothstep(0.25, 0.52, weather.r);
-    // Dense presets widen the weather response instead of filling weak-weather regions uniformly.
-    let deck_contrast = smoothstep(0.70, 0.90, clouds.density);
-    let coverage = saturate(
-        0.44 + 0.70 * (clouds.density - 0.52) - 0.10 * deck_contrast
-            + (0.18 + 0.12 * deck_contrast) * support,
-    );
+    let footprint = clamp(sample_length, 1.0, 80.0);
+
+    let weather_uv = (position.xz + drift) / WEATHER_WORLD_SIZE;
+    let weather_lod = clamp(log2(max(footprint * 512.0 / WEATHER_WORLD_SIZE, 1.0)), 0.0, 9.0);
+    let weather = textureSampleLevel(weather_texture, noise_sampler, weather_uv, weather_lod);
+    let coverage = saturate(clouds.density + 0.10 + (weather.r - 0.5) * 0.45);
+
     let shape_uv = vec3<f32>(
-        (position.x + drift.x) * 0.00045 * clouds.scale,
-        height * 0.72 + clouds.elapsed_seconds * 0.00013,
-        (position.z + drift.y) * 0.00045 * clouds.scale,
+        (position.x + drift.x) / SHAPE_WORLD_SIZE_XZ,
+        position.y / SHAPE_WORLD_SIZE_Y,
+        (position.z + drift.y) / SHAPE_WORLD_SIZE_XZ,
+    ) * clouds.scale;
+    let shape_lod = clamp(
+        log2(max(footprint * 128.0 * clouds.scale / SHAPE_WORLD_SIZE_XZ, 1.0)),
+        0.0,
+        7.0,
     );
-    let shape = textureSampleLevel(shape_texture, noise_sampler, shape_uv, 0.0);
+    let shape = textureSampleLevel(shape_texture, noise_sampler, shape_uv, shape_lod);
     let low_fbm = dot(shape.gba, vec3<f32>(0.625, 0.25, 0.125));
     let base_noise = saturate((shape.r + 1.0 - low_fbm) / max(2.0 - low_fbm, 0.0001));
-    let base_density = remap_density(base_noise, coverage) * low_height_gradient(height);
-    if (base_density <= 0.001) {
+    let cloud_type = saturate(weather.g * 0.5 + (1.0 - clouds.density) * 1.4);
+    let height_gradient = cloud_height_gradient(height, cloud_type);
+    var density = remap_density(base_noise, coverage) * height_gradient;
+    if (density <= 0.001) {
         return 0.0;
     }
-    let detail_uv = shape_uv * 7.0 + vec3<f32>(0.0, -clouds.elapsed_seconds * 0.0007, 0.0);
-    let detail = textureSampleLevel(detail_texture, noise_sampler, detail_uv, 0.0);
+
+    let detail_uv = shape_uv * DETAIL_MULTIPLIER;
+    let detail_world_size = SHAPE_WORLD_SIZE_XZ / (DETAIL_MULTIPLIER * clouds.scale);
+    let detail_lod = clamp(
+        log2(max(footprint * 32.0 / detail_world_size, 1.0)),
+        0.0,
+        5.0,
+    );
+    let detail = textureSampleLevel(detail_texture, noise_sampler, detail_uv, detail_lod);
     let detail_fbm = dot(detail.rgb, vec3<f32>(0.625, 0.25, 0.125));
-    let edge = 1.0 - base_density;
-    let erosion_enable = smoothstep(0.04, 0.16, height);
-    let erosion = (1.0 - detail_fbm) * edge * edge * edge * 0.05 * erosion_enable;
-    let density = saturate((base_density - erosion) * 3.80);
-    return density * smoothstep(0.06, 0.16, density);
+    let detail_modifier = mix(detail_fbm, 1.0 - detail_fbm, saturate(height * 10.0));
+    let erosion_floor = detail_modifier * mix(0.10, 0.25, saturate(height * 4.0));
+    return saturate((density - erosion_floor) / max(1.0 - erosion_floor, 0.001));
 }

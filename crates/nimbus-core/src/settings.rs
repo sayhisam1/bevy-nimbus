@@ -104,8 +104,8 @@ impl Default for NimbusSampling {
     fn default() -> Self {
         Self {
             view_steps: 48,
-            light_steps: 2,
-            resolution_divisor: 4,
+            light_steps: 4,
+            resolution_divisor: 2,
         }
     }
 }
