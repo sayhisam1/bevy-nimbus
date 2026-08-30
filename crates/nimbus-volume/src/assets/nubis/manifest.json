@@ -1,0 +1,104 @@
+{
+  "desktop_only_formats": [
+    "RGBA8_UNORM",
+    "R8_UNORM",
+    "BC7_UNORM"
+  ],
+  "generator": "thirdparty/sky/cloud_noise.py",
+  "seed": 1314210377,
+  "textures": {
+    "curl": {
+      "axis_layout": "raw[z][y][x][rgba]; KTX width=x height=y depth=z",
+      "bytes": 87816,
+      "dimensions": [
+        128,
+        128,
+        1
+      ],
+      "level_bytes": [
+        65536,
+        16384,
+        4096,
+        1024,
+        256,
+        64,
+        16,
+        4
+      ],
+      "levels": 8,
+      "semantic_channels": "RG signed curl encoded 0..1, B .5, A 1",
+      "sha256": "b9c2d24f4e96f1cfb7866685baa7cb0b1545189e6e1bef282cd4fdba74ca6bea",
+      "vk_format": 37
+    },
+    "detail": {
+      "axis_layout": "raw[z][y][x][rgba]; KTX width=x height=y depth=z",
+      "bytes": 150184,
+      "dimensions": [
+        32,
+        32,
+        32
+      ],
+      "level_bytes": [
+        131072,
+        16384,
+        2048,
+        256,
+        32,
+        4
+      ],
+      "levels": 6,
+      "semantic_channels": "RGB Worley octaves (RGBA8 storage), A 1",
+      "sha256": "761bdd6946b047af690b280b6b2601103f4f4da957690165d723b5313a124238",
+      "vk_format": 37
+    },
+    "shape": {
+      "axis_layout": "raw[z][y][x][rgba]; KTX width=x height=y depth=z",
+      "bytes": 9587416,
+      "dimensions": [
+        128,
+        128,
+        128
+      ],
+      "level_bytes": [
+        8388608,
+        1048576,
+        131072,
+        16384,
+        2048,
+        256,
+        32,
+        4
+      ],
+      "levels": 8,
+      "semantic_channels": "R Perlin-Worley, GBA Worley octaves",
+      "sha256": "05c071e7b6d6a5bb0657d6da2ed11f1ea164963ad6ee4a83d4150bc861a53c54",
+      "vk_format": 37
+    },
+    "weather": {
+      "axis_layout": "raw[z][y][x][rgba]; KTX width=x height=y depth=z",
+      "bytes": 1398584,
+      "dimensions": [
+        512,
+        512,
+        1
+      ],
+      "level_bytes": [
+        1048576,
+        262144,
+        65536,
+        16384,
+        4096,
+        1024,
+        256,
+        64,
+        16,
+        4
+      ],
+      "levels": 10,
+      "semantic_channels": "R coverage, G type, B rain, A 1",
+      "sha256": "2bd87f18a697c3621d8ca5fb3742b1243e5b18207c715b013fa6fe60ee1597e3",
+      "vk_format": 37
+    }
+  },
+  "version": 1
+}

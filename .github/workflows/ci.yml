@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  native:
+    name: Format, test, and package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all -- --check
+      - run: cargo test --workspace --lib --locked
+      - run: cargo check --examples --locked
+      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - run: cargo doc --workspace --no-deps --locked
+      - run: |
+          rm -rf target/package
+          cargo package --workspace --no-verify --locked
+      - name: Enforce package count and size headroom
+        run: |
+          mapfile -t crates < <(find target/package -maxdepth 1 -name 'bevy-nimbus-*.crate' -print)
+          test "${#crates[@]}" -eq 6
+          for crate in "${crates[@]}"; do
+            size="$(stat -c %s "$crate")"
+            echo "$(basename "$crate"): $size bytes"
+            test "$size" -le 10250000
+          done
+
+  wasm:
+    name: Check browser WebGPU examples
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo check --target wasm32-unknown-unknown --examples --locked

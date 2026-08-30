@@ -1,0 +1,143 @@
+name: Deploy WebGPU examples
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/pages.yml"
+      - "Cargo.toml"
+      - "crates/**"
+      - "examples/**"
+      - "src/**"
+  workflow_dispatch:
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    name: Build and deploy gallery
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build WebGPU examples
+        run: cargo build --release --target wasm32-unknown-unknown --examples --locked
+
+      - name: Install matching wasm-bindgen CLI
+        run: |
+          version="$(
+            cargo tree --target wasm32-unknown-unknown -p wasm-bindgen --depth 0 |
+              sed -n 's/^wasm-bindgen v//p'
+          )"
+          test -n "$version"
+          cargo install wasm-bindgen-cli --version "$version" --locked
+
+      - name: Assemble static gallery
+        run: |
+          examples=(basic_clouds cloud_settings sampling_quality cloud_lighting cloud_shadows)
+          descriptions=(
+            "Minimal volumetric cloud setup"
+            "Cloud presets and weather-field controls"
+            "View and light sampling quality"
+            "Ambient, primary, and secondary cloud lights"
+            "World-space cloud shadows"
+          )
+
+          mkdir -p public
+          touch public/.nojekyll
+          cat > public/index.html <<'HTML'
+          <!doctype html>
+          <html lang="en"><head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>bevy-nimbus WebGPU examples</title>
+            <style>
+              :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+              body { margin: 0; background: linear-gradient(#173e70, #7897af); color: #fff; min-height: 100vh; }
+              main { max-width: 960px; margin: auto; padding: 3rem 2rem; }
+              .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; }
+              .card { color: inherit; text-decoration: none; padding: 1.3rem; border: 1px solid #ffffff55; border-radius: 12px; background: #07192dbb; }
+              .card:hover { border-color: white; transform: translateY(-2px); }
+              strong { display: block; margin-bottom: .45rem; }
+              span, p { color: #d8e7f4; }
+            </style>
+          </head><body><main>
+            <h1>bevy-nimbus WebGPU examples</h1>
+            <p>Choose one focused example. A WebGPU-capable browser and GPU are required.</p>
+            <div class="grid">
+          HTML
+          for index in "${!examples[@]}"; do
+            example="${examples[$index]}"
+            description="${descriptions[$index]}"
+            printf '  <a class="card" href="./%s/"><strong>%s</strong><span>%s</span></a>\n' \
+              "$example" "$example" "$description" >> public/index.html
+          done
+          cat >> public/index.html <<'HTML'
+            </div>
+          </main></body></html>
+          HTML
+
+          for example in "${examples[@]}"; do
+            mkdir -p "public/$example"
+            wasm-bindgen \
+              --target web \
+              --out-dir "public/$example" \
+              --out-name "$example" \
+              "target/wasm32-unknown-unknown/release/examples/$example.wasm"
+
+            if [[ "$example" == cloud_shadows ]]; then
+              mkdir -p "public/$example/examples"
+              cp examples/shadow_ground.wgsl "public/$example/examples/"
+            fi
+
+            cat > "public/$example/index.html" <<HTML
+          <!doctype html>
+          <html lang="en"><head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>bevy-nimbus — $example</title>
+            <style>
+              html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #173e70; }
+              canvas { display: block; width: 100vw !important; height: 100vh !important; }
+              #status { position: fixed; inset: 0; display: grid; place-items: center; color: white; font: 1rem system-ui, sans-serif; }
+              #status span { padding: .8rem 1rem; border-radius: 8px; background: #07192ddd; }
+            </style>
+          </head><body>
+            <div id="status"><span>Loading $example…</span></div>
+            <script type="module">
+              import init from './$example.js';
+              const status = document.querySelector('#status');
+              if (!navigator.gpu) {
+                status.querySelector('span').textContent = 'This example requires a WebGPU-capable browser.';
+              } else {
+                init().then(() => status.remove()).catch((error) => {
+                  console.error(error);
+                  status.querySelector('span').textContent = 'The example failed to start. See the browser console.';
+                });
+              }
+            </script>
+          </body></html>
+          HTML
+          done
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

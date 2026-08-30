@@ -1,0 +1,19 @@
+[package]
+name = "bevy-nimbus-volume"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Nubis texture contracts and volumetric density model for bevy-nimbus"
+readme = "README.md"
+
+[lib]
+name = "nimbus_volume"
+path = "src/lib.rs"
+
+[dependencies]
+bevy = { workspace = true, features = ["bevy_asset", "bevy_render", "ktx2"] }
+
+[lints]
+workspace = true

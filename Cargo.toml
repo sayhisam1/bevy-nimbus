@@ -1,0 +1,81 @@
+[workspace]
+members = [
+    "crates/nimbus-core",
+    "crates/nimbus-lighting",
+    "crates/nimbus-motion",
+    "crates/nimbus-render",
+    "crates/nimbus-volume",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/sayhisam1/bevy-nimbus"
+
+[workspace.dependencies]
+bevy = { version = "0.19.1", default-features = false }
+nimbus-core = { package = "bevy-nimbus-core", version = "0.1.0", path = "crates/nimbus-core" }
+nimbus-lighting = { package = "bevy-nimbus-lighting", version = "0.1.0", path = "crates/nimbus-lighting" }
+nimbus-motion = { package = "bevy-nimbus-motion", version = "0.1.0", path = "crates/nimbus-motion" }
+nimbus-render = { package = "bevy-nimbus-render", version = "0.1.0", path = "crates/nimbus-render" }
+nimbus-volume = { package = "bevy-nimbus-volume", version = "0.1.0", path = "crates/nimbus-volume" }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = "warn"
+pedantic = "warn"
+
+[package]
+name = "bevy-nimbus"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+autobins = false
+description = "True-volumetric Nubis clouds for Bevy with temporal resolve and real shadows"
+readme = "README.md"
+documentation = "https://docs.rs/bevy-nimbus"
+keywords = ["bevy", "clouds", "rendering"]
+categories = ["game-development", "rendering"]
+include = [
+    "/src/**",
+    "/examples/**",
+    "/README.md",
+    "/CHANGELOG.md",
+    "/LICENSE-*",
+    "/THIRD_PARTY_LICENSES.md",
+]
+
+[package.metadata.docs.rs]
+all-features = true
+
+[dependencies]
+nimbus-render.workspace = true
+
+[dev-dependencies]
+bevy = { workspace = true, features = [
+    "bevy_asset",
+    "bevy_core_pipeline",
+    "bevy_log",
+    "bevy_pbr",
+    "bevy_render",
+    "bevy_window",
+    "bevy_winit",
+    "multi_threaded",
+    "reflect_auto_register",
+    "tonemapping_luts",
+    "x11",
+    "zstd_rust",
+] }
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+bevy = { workspace = true, features = ["webgpu"] }
+
+[lints]
+workspace = true

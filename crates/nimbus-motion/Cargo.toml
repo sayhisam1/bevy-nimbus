@@ -1,0 +1,20 @@
+[package]
+name = "bevy-nimbus-motion"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Temporal reprojection and motion-vector contracts for bevy-nimbus"
+readme = "README.md"
+
+[lib]
+name = "nimbus_motion"
+path = "src/lib.rs"
+
+[dependencies]
+bevy = { workspace = true, features = ["bevy_render"] }
+nimbus-core.workspace = true
+
+[lints]
+workspace = true

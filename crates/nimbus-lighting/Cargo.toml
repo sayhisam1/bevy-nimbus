@@ -1,0 +1,21 @@
+[package]
+name = "bevy-nimbus-lighting"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Directional, ambient, and shadow lighting for bevy-nimbus"
+readme = "README.md"
+
+[lib]
+name = "nimbus_lighting"
+path = "src/lib.rs"
+
+[dependencies]
+bevy = { workspace = true, features = ["bevy_asset", "bevy_core_pipeline", "bevy_pbr", "bevy_render"] }
+nimbus-core.workspace = true
+nimbus-volume.workspace = true
+
+[lints]
+workspace = true

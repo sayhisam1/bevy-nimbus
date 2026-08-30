@@ -1,0 +1,23 @@
+[package]
+name = "bevy-nimbus-render"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "True-volumetric Bevy renderer for bevy-nimbus"
+readme = "README.md"
+
+[lib]
+name = "nimbus_render"
+path = "src/lib.rs"
+
+[dependencies]
+bevy = { workspace = true, features = ["bevy_asset", "bevy_core_pipeline", "bevy_pbr", "bevy_render"] }
+nimbus-core.workspace = true
+nimbus-lighting.workspace = true
+nimbus-motion.workspace = true
+nimbus-volume.workspace = true
+
+[lints]
+workspace = true

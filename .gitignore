@@ -1,0 +1,7 @@
+/target
+/target-*
+/screenshots/*.png
+.cargo
+__pycache__/
+.ruff_cache
+DagorEngine-clouds/
