@@ -50,6 +50,7 @@ impl Plugin for NimbusPlugin {
             render_app.insert_resource(handles);
         }
         app.init_resource::<CloudsUniform>()
+            .add_observer(validate_inserted_view)
             .add_plugins((
                 bevy::render::extract_component::ExtractComponentPlugin::<NimbusCloudView>::default(
                 ),
@@ -60,4 +61,20 @@ impl Plugin for NimbusPlugin {
             .add_systems(Update, validate_nubis_textures);
         node::install(app);
     }
+}
+
+#[expect(clippy::needless_pass_by_value, reason = "Bevy observer parameter")]
+fn validate_inserted_view(
+    insert: On<Insert, NimbusCloudView>,
+    views: Query<(Has<bevy::camera::Hdr>, &Msaa), With<NimbusCloudView>>,
+) {
+    let Ok((hdr, msaa)) = views.get(insert.entity) else {
+        return;
+    };
+    assert!(hdr, "NimbusCloudView requires Hdr");
+    assert_eq!(
+        *msaa,
+        Msaa::Off,
+        "NimbusCloudView requires Msaa::Off because Nimbus samples single-sample depth",
+    );
 }

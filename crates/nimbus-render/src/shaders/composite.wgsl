@@ -10,5 +10,5 @@ fn fs_main(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
     if (textureLoad(scene_depth, pixel, 0) > 0.0) {
         return vec4<f32>(0.0);
     }
-    return textureSample(cloud_layer, cloud_sampler, in.uv);
+    return textureSampleLevel(cloud_layer, cloud_sampler, in.uv, 0.0);
 }
